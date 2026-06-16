@@ -1,0 +1,178 @@
+# RAG-Based Offline Multi-Model Vision Chatbot with Decentralized Data
+
+![first_screen](https://github.com/jot-s-bindra/Vision-Decentralized-Offline-Chatbot/assets/112833146/a2a65527-dfcc-4a6a-a037-8e7f75d48291)
+![inference](https://github.com/jot-s-bindra/Vision-Decentralized-Offline-Chatbot/assets/112833146/20866aa0-2c67-4426-8f8c-8b6bcab0ed05)
+
+## Overview
+
+This project hosts a fully offline multi-model chatbot built on the Retrieval-Augmented Generation (RAG) model that even runs on CPU. It incorporates IPFS (Pinata) technology for decentralized data storage, enabling secure and private interactions. The bot is designed to accept text prompts and images, utilizing a multimodal architecture to enhance language understanding.
+
+**Main feature:** We haven't used a vision LLM but instead combined multiple models, allowing us to handle image tasks with text LLMs too. The multimodel architecture is shown in the image below.
+
+Thresholding is used to guide and manage multiple models.
+
+## Multi-Model Architecture
+
+![chatbot](https://github.com/jot-s-bindra/Vision-Decentralized-Offline-Chatbot/assets/112833146/19271f00-8d8a-437f-b967-9ebc02b83625)
+
+## Features
+
+- **Offline Chatbot**: Utilizes the RAG architecture for conversational AI.
+- **Blockchain Data Storage**: Ensures decentralized and secure data handling.
+- **Vision Integration**: Accepts images as prompts for interactions, using a multi-model approach to include images in the prompt.
+- **Fine-Tuning**: Easier to fine-tune, as you can fine-tune or apply the VGG model only for your specific task, which is computationally less expensive than fine-tuning an LLM.
+- **Parameters**: Despite using multiple models, total parameters are still lower than a single 7.6B model (comprising all parameters of all models).
+- **Streamlit Hosted**: The bot is deployed using Streamlit for easy access.
+
+## Architecture
+
+The chatbot uses a multimodal architecture, harnessing the capabilities of various models:
+- **Llama2-7b-chat-ggml**: Enhances language understanding.
+- **VGG16 Fine-tuned on RAG Data**: Enables vision-based interactions.
+- **Salesforce/blip-image-captioning-large**: Facilitates image captioning.
+- **CLIP-ViT-L-14**: Encodes both image and text to the same vector space.
+
+## Setup
+
+### Clone Repository and Install Dependencies
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/your-username/your-repo.git
+    cd your-repo
+    ```
+
+2. Install dependencies:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+### Pull Docker Image
+
+Alternatively, pull the Docker image from [jotsbindra/offlinemultimodelvisionchatbot](https://hub.docker.com/r/jotsbindra/offlinemultimodelvisionchatbot):
+
+```bash
+docker pull jotsbindra/offlinemultimodelvisionchatbot
+```
+
+### Download Required Models
+
+1. Download the `llama2-7b-chat-ggml` model: [Download llama-2-7b-chat.ggmlv3.q8_0.bin](https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGML/blob/main/llama-2-7b-chat.ggmlv3.q8_0.bin)
+
+2. Run the `VGGTransferLearning.ipynb` notebook to generate `vgg16.h5`.
+
+3. Place both the `llama2-7b-chat-ggml` model and `vgg16.h5` inside a folder named `models` in the root directory of the project.
+
+### Run the Streamlit App
+
+After downloading the necessary models:
+
+```bash
+streamlit run app.py
+```
+
+## Decentralizing Files for Chatbot Training
+
+You need to install the IPFS software on your machine. Here's how:
+
+### Step 1: Install IPFS
+
+You can install IPFS using various methods depending on your operating system.
+
+- **Ubuntu:**
+    ```bash
+    sudo apt-get install curl
+    curl -sSL https://dist.ipfs.io/go-ipfs/v0.10.0/go-ipfs_v0.10.0_linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin ipfs
+    ```
+
+- **macOS (Homebrew):**
+    ```bash
+    brew install ipfs
+    ```
+
+- **Windows:**  
+    Download the prebuilt binaries from the IPFS distributions.
+
+### Step 2: Initialize IPFS
+
+Once IPFS is installed, initialize it:
+
+```bash
+ipfs init
+```
+
+### Step 3: Start the IPFS Daemon
+
+Start the IPFS daemon:
+
+```bash
+ipfs daemon
+```
+
+This starts the IPFS daemon, which is a background process that handles adding and retrieving files from the IPFS network.
+
+> **Note:** The IPFS daemon must be running to add or retrieve files. If you stop the daemon, restart it before performing actions again.
+
+### Add and Pin Files
+
+After starting the daemon, in a new terminal:
+
+```bash
+ipfs pin add FILE
+```
+
+The `FILE` you want to add should be saved in your home directory.
+
+After running the above command, you will get a CID. If you already have a CID:
+
+- Update the `data` folder's file `j.bat` (Windows):
+    ```bat
+    ipfs get <CID>
+    ```
+- In the CLI, navigate to the data folder in the current directory:
+    ```bat
+    .\commands.bat
+    ```
+
+You have now retrieved the required file via the IPFS distributed P2P network.
+
+Alternatively, you can use pinning services like Pinata to pin your files.
+
+> **Note:** To decentralize your data, copy `new.pdf` to your home directory and delete the file in the data folder.
+
+## IPFS Working
+
+![ipfs_chunker_4](https://github.com/jot-s-bindra/Vision-Decentralized-Offline-Chatbot/assets/112833146/17b099dd-e63d-4665-b998-4ba9e31c7001)
+
+This is a visual representation of how IPFS (InterPlanetary File System) handles chunking and deduplication of data:
+
+1. **Data Blocks**: Individual pieces of data broken into smaller chunks, each with a unique identifier (hash).
+2. **Chunking**: Breaking data into fixed-size blocks, each hashed and added to IPFS.
+3. **Deduplication**: IPFS checks if a data block already exists via its hash. If so, it reuses the block, saving storage and reducing redundancy.
+4. **Block Exchange Protocol (BEP)**: Protocol for exchanging data blocks between nodes.
+5. **Pinning**: Tells an IPFS node to keep a file/data block indefinitely, ensuring availability even if others go offline.
+
+This image illustrates core IPFS principles: chunking data into blocks, deduplication to save space, and using a peer-to-peer network to exchange data blocks efficiently.
+
+## Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork this repository.
+2. Create a new branch:
+    ```bash
+    git checkout -b feature/improvement
+    ```
+3. Make modifications and commit changes:
+    ```bash
+    git commit -am 'Add feature/improvement'
+    ```
+4. Push the changes to your branch:
+    ```bash
+    git push origin feature/improvement
+    ```
+5. Create a pull request.
+
+---
