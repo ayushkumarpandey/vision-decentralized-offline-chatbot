@@ -1,24 +1,333 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Simple Chatbot</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> 
-    </head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis AI - Offline Multimodal Chatbot Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
 <body>
-    <h1>Simple Chatbot Interface</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <label for="text">Enter Text:</label><br>
-        <input type="text" id="text" name="text"><br><br>
-        <label for="image">Upload Image:</label><br>
-        <input type="file" id="image" name="image_path"><br><br>
-        <input type="submit" value="Submit">
-    </form>
-    <div>
-        {% if output %}
-            <h2>Generated Output:</h2>
-            <p>{{ output }}</p>
-        {% endif %}
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2.5" />
+                    <circle cx="16" cy="16" r="6" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2" />
+                    <path d="M10 16H22M16 10V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="logo-text">
+                    <h1>AEGIS <span class="logo-sub">VISION</span></h1>
+                    <p class="logo-tag">Offline Multimodal RAG Chatbot</p>
+                </div>
+            </div>
+            <div class="system-status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot pulsing" id="network-dot"></span>
+                    <span class="status-text" id="network-text">Offline Core Mode</span>
+                </div>
+                <div class="divider"></div>
+                <div class="status-indicator">
+                    <span class="status-dot loaded" id="db-dot"></span>
+                    <span class="status-text">FAISS Node</span>
+                </div>
+                <div class="divider"></div>
+                <div class="status-indicator">
+                    <span class="status-dot loaded" id="ipfs-dot"></span>
+                    <span class="status-text">IPFS Node Active</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="app-workspace">
+            <!-- Left Workspace: Chat Console -->
+            <section class="workspace-chat">
+                <div class="chat-header">
+                    <div class="header-info">
+                        <h2>Secure Chat Terminal</h2>
+                        <p>End-to-end local inference. Zero external queries.</p>
+                    </div>
+                    <button class="btn-clear-chat" id="clear-chat-btn" title="Reset Conversation">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>Reset Chat</span>
+                    </button>
+                </div>
+
+                <!-- Chat Dialog Area -->
+                <div class="chat-dialog" id="chat-dialog-area">
+                    <div class="message system-msg">
+                        <div class="message-avatar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <div class="message-bubble">
+                            <p><strong>Aegis Security System Initialized.</strong> Your chatbot session is fully isolated and secure. Upload chest X-rays or diagnostic images and query the RAG medical document library without exposing data online.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stepper Progress Indicator -->
+                <div class="pipeline-stepper" id="pipeline-stepper-widget">
+                    <h3 class="stepper-title">Multimodal Processing Pipeline</h3>
+                    <div class="steps-container">
+                        <div class="step" id="step-vgg">
+                            <div class="step-num">1</div>
+                            <div class="step-label">VGG16 classification</div>
+                        </div>
+                        <div class="step" id="step-blip">
+                            <div class="step-num">2</div>
+                            <div class="step-label">BLIP Image Captioning</div>
+                        </div>
+                        <div class="step" id="step-clip">
+                            <div class="step-num">3</div>
+                            <div class="step-label">CLIP Cross-Encoding</div>
+                        </div>
+                        <div class="step" id="step-faiss">
+                            <div class="step-num">4</div>
+                            <div class="step-label">FAISS Vector Search</div>
+                        </div>
+                        <div class="step" id="step-llama">
+                            <div class="step-num">5</div>
+                            <div class="step-label">Llama-2 Generation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input Control Area -->
+                <div class="chat-input-container">
+                    <form id="chat-submit-form" enctype="multipart/form-data">
+                        <!-- Image Upload Drag/Drop Zone -->
+                        <div class="drag-upload-zone" id="drag-upload-panel">
+                            <input type="file" id="image-file-input" name="image" accept="image/*" class="file-hidden-input">
+                            <div class="upload-prompt" id="upload-prompt-text">
+                                <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p>Drag & drop diagnostic scan or <span>Browse</span></p>
+                                <span class="upload-subtext">Supports PNG, JPG, JPEG</span>
+                            </div>
+                            <div class="upload-preview hidden" id="upload-preview-container">
+                                <img src="" alt="Scan Preview" id="upload-preview-img">
+                                <div class="file-meta">
+                                    <span class="file-name" id="preview-file-name">file_name.jpg</span>
+                                    <span class="file-size" id="preview-file-size">145 KB</span>
+                                </div>
+                                <button type="button" class="btn-remove-file" id="btn-remove-image" title="Remove image">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Prompt input area -->
+                        <div class="input-row">
+                            <textarea id="prompt-textarea" name="text" placeholder="Query RAG context or upload medical chest scans..." required rows="1"></textarea>
+                            <button type="submit" class="btn-send-message" id="btn-send" title="Send Request">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Right Workspace: Model Analytics Dashboard -->
+            <section class="workspace-dashboard">
+                <div class="dashboard-header">
+                    <h2>Model Inspection Panel</h2>
+                    <p>Live inference monitoring and embedding matching outputs</p>
+                </div>
+
+                <div class="dashboard-scrollable">
+                    <!-- Model Status Card -->
+                    <div class="dash-card status-card">
+                        <h3 class="card-title">Model Activation Matrix</h3>
+                        <div class="model-matrix-grid" id="model-matrix-container">
+                            <div class="matrix-item">
+                                <span class="matrix-label">VGG16 (CNN)</span>
+                                <span class="matrix-val badge-loading" id="status-vgg16">Loading...</span>
+                            </div>
+                            <div class="matrix-item">
+                                <span class="matrix-label">BLIP (Salesforce)</span>
+                                <span class="matrix-val badge-loading" id="status-blip">Loading...</span>
+                            </div>
+                            <div class="matrix-item">
+                                <span class="matrix-label">CLIP (ViT-L-14)</span>
+                                <span class="matrix-val badge-loading" id="status-clip">Loading...</span>
+                            </div>
+                            <div class="matrix-item">
+                                <span class="matrix-label">FAISS (Vector DB)</span>
+                                <span class="matrix-val badge-loading" id="status-faiss">Loading...</span>
+                            </div>
+                            <div class="matrix-item">
+                                <span class="matrix-label">Llama 2 (LLM 7B)</span>
+                                <span class="matrix-val badge-loading" id="status-llama2">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scan Analysis Insights (VGG16 + BLIP + CLIP) -->
+                    <div class="dash-card analysis-card">
+                        <h3 class="card-title">Vision Inspector Output</h3>
+                        <div class="analysis-placeholder" id="vision-placeholder">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            <p>No active image analysis. Submit an image to trigger CNN classification, BLIP captioning, and CLIP alignment verification.</p>
+                        </div>
+                        <div class="analysis-content hidden" id="vision-analysis-content">
+                            <!-- Image Scan Preview -->
+                            <div class="dashboard-scan-preview">
+                                <img src="" alt="Active scan" id="dash-scan-img">
+                            </div>
+                            
+                            <!-- VGG16 Output -->
+                            <div class="metric-group">
+                                <div class="metric-header">
+                                    <span class="metric-name">VGG16 Classification</span>
+                                    <span class="metric-val" id="dash-vgg-class">NORMAL CHEST</span>
+                                </div>
+                                <div class="gauge-bar">
+                                    <div class="gauge-fill" id="dash-vgg-confidence-fill" style="width: 85%;"></div>
+                                </div>
+                                <div class="metric-sub">Confidence: <span id="dash-vgg-confidence-text">85.0%</span></div>
+                            </div>
+
+                            <!-- BLIP Description -->
+                            <div class="metric-group">
+                                <div class="metric-header">
+                                    <span class="metric-name">BLIP Caption Descriptor</span>
+                                </div>
+                                <div class="descriptor-bubble" id="dash-blip-caption">
+                                    "a chest x-ray scan of a patient showing clear lung fields"
+                                </div>
+                            </div>
+
+                            <!-- CLIP Score -->
+                            <div class="metric-group">
+                                <div class="metric-header">
+                                    <span class="metric-name">CLIP Embedding Consistency</span>
+                                    <span class="metric-val" id="dash-clip-score">0.82</span>
+                                </div>
+                                <div class="gauge-bar">
+                                    <div class="gauge-fill clip-color" id="dash-clip-fill" style="width: 82%;"></div>
+                                </div>
+                                <div class="metric-sub">Similarity between class description and caption vector space</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAISS Document Retrieval Context -->
+                    <div class="dash-card rag-card">
+                        <h3 class="card-title">FAISS RAG Context Retrieval</h3>
+                        <div class="analysis-placeholder" id="rag-placeholder">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            <p>No query submitted. Retrieved matching text segments from the offline vectorized documents (e.g. new.pdf) will populate here.</p>
+                        </div>
+                        <div class="rag-content hidden" id="rag-analysis-content">
+                            <!-- Vector Chunks -->
+                            <div class="accordion-item">
+                                <div class="accordion-header" onclick="toggleAccordion(this)">
+                                    <span>Query Retrieval Chunk (Text-Based)</span>
+                                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                                <div class="accordion-body" id="chunk-text-similar">
+                                    Document content segment...
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <div class="accordion-header" onclick="toggleAccordion(this)">
+                                    <span>Image Vector Retrieval Chunk (CLIP Space)</span>
+                                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                                <div class="accordion-body" id="chunk-image-similar">
+                                    Document content segment...
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <div class="accordion-header" onclick="toggleAccordion(this)">
+                                    <span>Caption Vector Retrieval Chunk (RAG Space)</span>
+                                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                                <div class="accordion-body" id="chunk-imagetext-similar">
+                                    Document content segment...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Decentralized Storage (IPFS) Card -->
+                    <div class="dash-card ipfs-card">
+                        <h3 class="card-title">IPFS Nodes & Pinata Storage</h3>
+                        <div class="ipfs-matrix-grid">
+                            <div class="ipfs-node-header">
+                                <div class="node-id-lbl">Local Node Peer ID:</div>
+                                <div class="node-id-val font-mono" id="ipfs-node-id">QmXoypizjW3WknFixtNswHCgztYt96zpZo496956D3FF3</div>
+                            </div>
+                            <div class="ipfs-stat-row">
+                                <div class="ipfs-stat-box">
+                                    <span class="ipfs-lbl">Daemon Status</span>
+                                    <span class="ipfs-val active-text">Online</span>
+                                </div>
+                                <div class="ipfs-stat-box">
+                                    <span class="ipfs-lbl">Connected Peers</span>
+                                    <span class="ipfs-val" id="ipfs-peers-count">14 Peers</span>
+                                </div>
+                                <div class="ipfs-stat-box">
+                                    <span class="ipfs-lbl">Active Pins</span>
+                                    <span class="ipfs-val" id="ipfs-pins-count">4 Assets</span>
+                                </div>
+                            </div>
+                            <div class="ipfs-chunker-visualizer">
+                                <div class="chunk-title">File Deduplication (BEP Chunker)</div>
+                                <div class="chunk-dots" id="chunk-dots-grid">
+                                    <span class="chunk-dot active" title="Metadata chunk: Block #1"></span>
+                                    <span class="chunk-dot active" title="Vector schema: Block #2"></span>
+                                    <span class="chunk-dot active" title="Image weights index: Block #3"></span>
+                                    <span class="chunk-dot" title="Available Node: Block #4"></span>
+                                    <span class="chunk-dot active" title="Text chunking cache: Block #5"></span>
+                                    <span class="chunk-dot" title="Distributed hash table: Block #6"></span>
+                                    <span class="chunk-dot" title="Node replica: Block #7"></span>
+                                    <span class="chunk-dot active" title="PDF backup chunk: Block #8"></span>
+                                </div>
+                                <div class="chunk-legend">
+                                    <span class="legend-item"><span class="legend-dot active"></span> Local Replica</span>
+                                    <span class="legend-item"><span class="legend-dot"></span> Network Peer Replica</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
+
+    <!-- Application Script -->
+    <script src="/static/app.js"></script>
 </body>
 </html>
-
